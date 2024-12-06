@@ -9,6 +9,9 @@ class HtmlEditorController {
     this.processOutputHtml = true,
   });
 
+  late final Future<void> Function() insertVideo;
+  late final  Future<void>Function() insertPicture;
+
   /// Toolbar widget state to call various methods. For internal use only.
   @internal
   ToolbarWidgetState? toolbar;
