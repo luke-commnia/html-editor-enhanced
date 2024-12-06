@@ -2262,10 +2262,16 @@ class ToolbarWidgetState extends State<ToolbarWidget> {
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  if (widget
+                                      .htmlToolbarOptions.allowVideoPicking)
                                   Text('Select from files',
                                       style: TextStyle(
                                           fontWeight: FontWeight.bold)),
+                                  if (widget
+                                      .htmlToolbarOptions.allowVideoPicking)
                                   SizedBox(height: 10),
+                                  if (widget
+                                      .htmlToolbarOptions.allowVideoPicking)
                                   TextFormField(
                                       controller: filename,
                                       readOnly: true,
@@ -2315,10 +2321,16 @@ class ToolbarWidgetState extends State<ToolbarWidget> {
                                         errorMaxLines: 2,
                                         border: InputBorder.none,
                                       )),
+                                  if (widget
+                                      .htmlToolbarOptions.allowVideoPicking)
                                   SizedBox(height: 20),
+                                  if (widget
+                                      .htmlToolbarOptions.allowVideoPicking)
                                   Text('URL',
                                       style: TextStyle(
                                           fontWeight: FontWeight.bold)),
+                                  if (widget
+                                      .htmlToolbarOptions.allowVideoPicking)
                                   SizedBox(height: 10),
                                   TextField(
                                     controller: url,
@@ -2344,8 +2356,10 @@ class ToolbarWidgetState extends State<ToolbarWidget> {
                                   if (filename.text.isEmpty &&
                                       url.text.isEmpty) {
                                     setState(() {
-                                      validateFailed =
-                                          'Please either choose a video or enter a video URL!';
+                                      validateFailed = widget.htmlToolbarOptions
+                                              .allowImagePicking
+                                          ? 'Please either choose a video or enter a video URL!'
+                                          : 'Please enter a video URL!';
                                     });
                                   } else if (filename.text.isNotEmpty &&
                                       url.text.isNotEmpty) {

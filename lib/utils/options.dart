@@ -190,6 +190,7 @@ class HtmlToolbarOptions {
     this.gridViewHorizontalSpacing = 5,
     this.gridViewVerticalSpacing = 5,
     this.allowImagePicking = true,
+    this.allowVideoPicking = true,
   });
 
   /// Allows you to set the allowed extensions when a user inserts an audio file
@@ -408,6 +409,10 @@ class HtmlToolbarOptions {
   /// Allow the user to choose an image from their device when image selection
   /// is enabled. Inserting images via URL will still be possible if this is false.
   final bool allowImagePicking;
+
+  /// Allow the user to choose a video from their device when video selection
+  /// is enabled. Inserting videos via URL will still be possible if this is false.
+  final bool allowVideoPicking;
 }
 
 /// Other options such as the height of the widget and the decoration surrounding it
