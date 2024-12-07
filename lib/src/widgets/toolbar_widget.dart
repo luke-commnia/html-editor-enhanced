@@ -2056,15 +2056,15 @@ class ToolbarWidgetState extends State<ToolbarWidget> {
                                     }
                                     Navigator.of(context).pop();
                                   } else {
+                                    final String html = "<audio controls src='${url.text}'></audio>";
                                     var proceed = await widget
                                             .htmlToolbarOptions
                                             .mediaLinkInsertInterceptor
                                             ?.call(url.text,
-                                                InsertFileType.audio) ??
+                                                InsertFileType.audio, html) ??
                                         true;
                                     if (proceed) {
-                                      widget.controller.insertHtml(
-                                          "<audio controls src='${url.text}'></audio>");
+                                      widget.controller.insertHtml(html);
                                     }
                                     Navigator.of(context).pop();
                                   }
@@ -2796,7 +2796,7 @@ class ToolbarWidgetState extends State<ToolbarWidget> {
                           Navigator.of(context).pop();
                         } else {
                           var proceed = await widget.htmlToolbarOptions.mediaLinkInsertInterceptor
-                                  ?.call(url.text, InsertFileType.image) ??
+                                  ?.call(url.text, InsertFileType.image, url.text) ??
                               true;
                           if (proceed) {
                             widget.controller.insertNetworkImage(url.text);
@@ -2958,15 +2958,12 @@ class ToolbarWidgetState extends State<ToolbarWidget> {
                           }
                           Navigator.of(context).pop();
                         } else {
-                          var proceed = await widget
-                                  .htmlToolbarOptions
-                                  .mediaLinkInsertInterceptor
-                                  ?.call(url.text,
-                                      InsertFileType.video) ??
+                          final String html = "<video controls src='${url.text}'></video>";
+                          var proceed = await widget.htmlToolbarOptions.mediaLinkInsertInterceptor
+                                  ?.call(url.text, InsertFileType.video, html) ??
                               true;
                           if (proceed) {
-                            widget.controller.insertHtml(
-                                "<video controls src='${url.text}'></video>");
+                            widget.controller.insertHtml(html);
                           }
                           Navigator.of(context).pop();
                         }

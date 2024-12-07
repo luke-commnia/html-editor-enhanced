@@ -89,7 +89,7 @@ class _HtmlEditorExampleState extends State<HtmlEditorExample> {
                     return true;
                   },
                   mediaLinkInsertInterceptor:
-                      (String url, InsertFileType type) {
+                      (String url, InsertFileType type, String? html) {
                     print(url);
                     return true;
                   },
