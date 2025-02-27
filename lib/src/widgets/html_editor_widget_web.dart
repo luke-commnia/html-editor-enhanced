@@ -705,7 +705,7 @@ class _HtmlEditorWidgetWebState extends State<HtmlEditorWidget> {
           c.onBeforeCommand!.call(data['contents']);
         }
         if (data['type'].contains('onChangeContent')) {
-          c.onChangeContent!.call(data['contents']);
+          c.onChangeContent?.call(data['contents'] ?? 'abc');
         }
         if (data['type'].contains('onChangeCodeview')) {
           c.onChangeCodeview!.call(data['contents']);
