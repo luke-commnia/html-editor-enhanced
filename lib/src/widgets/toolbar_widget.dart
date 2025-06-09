@@ -2689,292 +2689,401 @@ class ToolbarWidgetState extends State<ToolbarWidget> {
     return toolbarChildren;
   }
 
-  Future<void> _insertPicture() async {
-    var proceed = await widget.htmlToolbarOptions.onButtonPressed?.call(ButtonType.picture, null, null) ?? true;
+  Future<void> insertImageFromFile(PlatformFile file) async {
+    if (file.bytes == null) {
+      return;
+    }
+    final base64Data = base64.encode(file.bytes!);
+    final proceed = await widget.htmlToolbarOptions.mediaUploadInterceptor
+            ?.call(file, InsertFileType.image) ??
+        true;
     if (proceed) {
-      final filename = TextEditingController();
-      final url = TextEditingController();
-      final urlFocus = FocusNode();
-      FilePickerResult? result;
-      String? validateFailed;
-      await showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return PointerInterceptor(
-              child: StatefulBuilder(builder: (BuildContext context, StateSetter setState) {
-                return AlertDialog(
-                  title: Text('Insert Image'),
-                  scrollable: true,
-                  content:
-                      Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    if (widget.htmlToolbarOptions.allowImagePicking)
-                      Text('Select from files', style: TextStyle(fontWeight: FontWeight.bold)),
-                    if (widget.htmlToolbarOptions.allowImagePicking) SizedBox(height: 10),
-                    if (widget.htmlToolbarOptions.allowImagePicking)
-                      TextFormField(
-                          controller: filename,
-                          readOnly: true,
-                          decoration: InputDecoration(
-                            prefixIcon: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                  backgroundColor: Theme.of(context).dialogBackgroundColor,
-                                  padding: EdgeInsets.only(left: 5, right: 5),
-                                  elevation: 0.0),
-                              onPressed: () async {
-                                result = await FilePicker.platform.pickFiles(
-                                  type: FileType.image,
-                                  withData: true,
-                                  allowedExtensions: widget.htmlToolbarOptions.imageExtensions,
-                                );
-                                if (result?.files.single.name != null) {
-                                  setState(() {
-                                    filename.text = result!.files.single.name;
-                                  });
-                                }
-                              },
-                              child: Text('Choose image',
-                                  style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color)),
-                            ),
-                            suffixIcon: result != null
-                                ? IconButton(
-                                    icon: Icon(Icons.close),
-                                    onPressed: () {
-                                      setState(() {
-                                        result = null;
-                                        filename.text = '';
-                                      });
-                                    })
-                                : Container(height: 0, width: 0),
-                            errorText: validateFailed,
-                            errorMaxLines: 2,
-                            border: InputBorder.none,
-                          )),
-                    if (widget.htmlToolbarOptions.allowImagePicking) SizedBox(height: 20),
-                    if (widget.htmlToolbarOptions.allowImagePicking)
-                      Text('URL', style: TextStyle(fontWeight: FontWeight.bold)),
-                    if (widget.htmlToolbarOptions.allowImagePicking) SizedBox(height: 10),
-                    TextField(
-                      controller: url,
-                      focusNode: urlFocus,
-                      textInputAction: TextInputAction.done,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: 'URL',
-                        errorText: validateFailed,
-                        errorMaxLines: 2,
-                      ),
-                    ),
-                  ]),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                      child: Text('Cancel'),
-                    ),
-                    TextButton(
-                      onPressed: () async {
-                        if (filename.text.isEmpty && url.text.isEmpty) {
-                          setState(() {
-                            validateFailed = widget.htmlToolbarOptions.allowImagePicking
-                                ? 'Please either choose an image or enter an image URL!'
-                                : 'Please enter an image URL!';
-                          });
-                        } else if (filename.text.isNotEmpty && url.text.isNotEmpty) {
-                          setState(() {
-                            validateFailed = 'Please input either an image or an image URL, not both!';
-                          });
-                        } else if (filename.text.isNotEmpty && result?.files.single.bytes != null) {
-                          var base64Data = base64.encode(result!.files.single.bytes!);
-                          var proceed = await widget.htmlToolbarOptions.mediaUploadInterceptor
-                                  ?.call(result!.files.single, InsertFileType.image) ??
-                              true;
-                          if (proceed) {
-                            widget.controller.insertHtml(
-                                "<img src='data:image/${result!.files.single.extension};base64,$base64Data' data-filename='${result!.files.single.name}'/>");
-                          }
-                          Navigator.of(context).pop();
-                        } else {
-                          var proceed = await widget.htmlToolbarOptions.mediaLinkInsertInterceptor
-                                  ?.call(url.text, InsertFileType.image, url.text) ??
-                              true;
-                          if (proceed) {
-                            widget.controller.insertNetworkImage(url.text);
-                          }
-                          Navigator.of(context).pop();
-                        }
-                      },
-                      child: Text('OK'),
-                    )
-                  ],
-                );
-              }),
-            );
-          });
+      widget.controller.insertHtml(
+        "<img src='data:image/${file.extension};base64,$base64Data' "
+        "data-filename='${file.name}'/>",
+      );
     }
   }
 
-  Future<void> _insertVideo() async {
-     var proceed = await widget.htmlToolbarOptions.onButtonPressed
-            ?.call(ButtonType.video, null, null) ??
+  Future<void> insertImageFromUrl(String url) async {
+    final proceed = await widget.htmlToolbarOptions.mediaLinkInsertInterceptor
+            ?.call(url, InsertFileType.image, url) ??
         true;
     if (proceed) {
-      final filename = TextEditingController();
-      final url = TextEditingController();
-      final urlFocus = FocusNode();
-      FilePickerResult? result;
-      String? validateFailed;
-      await showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return PointerInterceptor(
-              child: StatefulBuilder(builder:
-                  (BuildContext context, StateSetter setState) {
-                return AlertDialog(
-                  title: Text('Insert Video'),
-                  scrollable: true,
-                  content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (widget
-                            .htmlToolbarOptions.allowVideoPicking)
-                        Text('Select from files',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold)),
-                        if (widget
-                            .htmlToolbarOptions.allowVideoPicking)
-                        SizedBox(height: 10),
-                        if (widget
-                            .htmlToolbarOptions.allowVideoPicking)
-                        TextFormField(
-                            controller: filename,
-                            readOnly: true,
-                            decoration: InputDecoration(
-                              prefixIcon: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: Theme.of(context)
-                                        .dialogBackgroundColor,
-                                    padding: EdgeInsets.only(
-                                        left: 5, right: 5),
-                                    elevation: 0.0),
-                                onPressed: () async {
-                                  result = await FilePicker.platform
-                                      .pickFiles(
-                                    type: FileType.video,
-                                    withData: true,
-                                    allowedExtensions: widget
-                                        .htmlToolbarOptions
-                                        .videoExtensions,
-                                  );
-                                  if (result?.files.single.name !=
-                                      null) {
-                                    setState(() {
-                                      filename.text =
-                                          result!.files.single.name;
-                                    });
-                                  }
-                                },
-                                child: Text('Choose video',
-                                    style: TextStyle(
-                                        color: Theme.of(context)
-                                            .textTheme
-                                            .bodySmall
-                                            ?.color)),
-                              ),
-                              suffixIcon: result != null
-                                  ? IconButton(
-                                      icon: Icon(Icons.close),
-                                      onPressed: () {
-                                        setState(() {
-                                          result = null;
-                                          filename.text = '';
-                                        });
-                                      })
-                                  : Container(height: 0, width: 0),
-                              errorText: validateFailed,
-                              errorMaxLines: 2,
-                              border: InputBorder.none,
-                            )),
-                        if (widget
-                            .htmlToolbarOptions.allowVideoPicking)
-                        SizedBox(height: 20),
-                        if (widget
-                            .htmlToolbarOptions.allowVideoPicking)
-                        Text('URL',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold)),
-                        if (widget
-                            .htmlToolbarOptions.allowVideoPicking)
-                        SizedBox(height: 10),
-                        TextField(
-                          controller: url,
-                          focusNode: urlFocus,
-                          textInputAction: TextInputAction.done,
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(),
-                            hintText: 'URL',
-                            errorText: validateFailed,
-                            errorMaxLines: 2,
-                          ),
-                        ),
-                      ]),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                      child: Text('Cancel'),
-                    ),
-                    TextButton(
-                      onPressed: () async {
-                        if (filename.text.isEmpty &&
-                            url.text.isEmpty) {
-                          setState(() {
-                            validateFailed = widget.htmlToolbarOptions
-                                    .allowImagePicking
-                                ? 'Please either choose a video or enter a video URL!'
-                                : 'Please enter a video URL!';
-                          });
-                        } else if (filename.text.isNotEmpty &&
-                            url.text.isNotEmpty) {
-                          setState(() {
-                            validateFailed =
-                                'Please input either a video or a video URL, not both!';
-                          });
-                        } else if (filename.text.isNotEmpty &&
-                            result?.files.single.bytes != null) {
-                          var base64Data = base64
-                              .encode(result!.files.single.bytes!);
-                          var proceed = await widget
-                                  .htmlToolbarOptions
-                                  .mediaUploadInterceptor
-                                  ?.call(result!.files.single,
-                                      InsertFileType.video) ??
-                              true;
-                          if (proceed) {
-                            widget.controller.insertHtml(
-                                "<video controls src='data:video/${result!.files.single.extension};base64,$base64Data' data-filename='${result!.files.single.name}'></video>");
-                          }
-                          Navigator.of(context).pop();
-                        } else {
-                          final String html = "<video controls src='${url.text}'></video>";
-                          var proceed = await widget.htmlToolbarOptions.mediaLinkInsertInterceptor
-                                  ?.call(url.text, InsertFileType.video, html) ??
-                              true;
-                          if (proceed) {
-                            widget.controller.insertHtml(html);
-                          }
-                          Navigator.of(context).pop();
-                        }
-                      },
-                      child: Text('OK'),
-                    )
-                  ],
-                );
-              }),
-            );
-          });
+      widget.controller.insertNetworkImage(url);
     }
+  }
+
+  Future<void> insertVideoFromFile(PlatformFile file) async {
+    if (file.bytes == null) {
+      return;
+    }
+    final base64Data = base64.encode(file.bytes!);
+    final proceed = await widget.htmlToolbarOptions.mediaUploadInterceptor
+            ?.call(file, InsertFileType.video) ??
+        true;
+    if (proceed) {
+      widget.controller.insertHtml(
+        "<video controls "
+        "src='data:video/${file.extension};base64,$base64Data' "
+        "data-filename='${file.name}'></video>",
+      );
+    }
+  }
+
+  Future<void> insertVideoFromUrl(String url) async {
+    final proceed = await widget.htmlToolbarOptions.mediaLinkInsertInterceptor
+            ?.call(url, InsertFileType.video, url) ??
+        true;
+    if (proceed) {
+      final html = "<video controls src='${url}'></video>";
+      widget.controller.insertHtml(html);
+    }
+  }
+
+  Future<void> _insertPicture() async {
+    final proceed = await widget.htmlToolbarOptions.onButtonPressed
+            ?.call(ButtonType.picture, null, null) ??
+        true;
+    if (!proceed) {
+      return;
+    }
+
+    final factory = widget.htmlToolbarOptions.imageInsertDialogFactory ??
+        DefaultImageInsertDialogFactory();
+    final allowImagePicking = widget.htmlToolbarOptions.allowImagePicking;
+    var currentState = PickerDialogState();
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return PointerInterceptor(
+          child: StatefulBuilder(
+            builder: (context, setState) {
+              return factory.create(
+                context: context,
+                currentState: currentState,
+                allowMediaPicking: allowImagePicking,
+                allowedExtensions:
+                    widget.htmlToolbarOptions.imageExtensions ?? [],
+                onFilePicked: (file) async {
+                  setState(() {
+                    currentState = currentState.copyWith(
+                      pickedFile: file,
+                      url: null,
+                    );
+                  });
+                },
+                onUrlChanged: (value) {
+                  setState(() {
+                    currentState = currentState.copyWith(url: value);
+                  });
+                },
+                onSubmit: () async {
+                  final pickedFile = currentState.pickedFile;
+                  final url = currentState.url;
+                  if (pickedFile == null && url == null) {
+                    setState(() {
+                      currentState = currentState.copyWith(
+                        errorText: 'Please either choose an image or enter '
+                            'an image URL!',
+                      );
+                    });
+                    return;
+                  } else if (pickedFile != null && url != null) {
+                    setState(() {
+                      currentState = currentState.copyWith(
+                        errorText: 'Please input either an image or an '
+                            'image URL, not both!',
+                      );
+                    });
+                    return;
+                  } else if (pickedFile != null) {
+                    await insertImageFromFile(pickedFile);
+                  } else if (url != null) {
+                    await insertImageFromUrl(url);
+                  }
+                  Navigator.of(context).pop();
+                },
+                onCancel: () {
+                  Navigator.of(context).pop();
+                },
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _insertVideo() async {
+    final proceed = await widget.htmlToolbarOptions.onButtonPressed
+            ?.call(ButtonType.video, null, null) ??
+        true;
+    if (!proceed) {
+      return;
+    }
+
+    final factory = widget.htmlToolbarOptions.videoInsertDialogFactory ??
+        DefaultVideoInsertDialogFactory();
+    final allowVideoPicking = widget.htmlToolbarOptions.allowVideoPicking;
+    var currentState = PickerDialogState();
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return PointerInterceptor(
+          child: StatefulBuilder(
+            builder: (context, setState) {
+              return factory.create(
+                context: context,
+                currentState: currentState,
+                allowMediaPicking: allowVideoPicking,
+                allowedExtensions:
+                    widget.htmlToolbarOptions.videoExtensions ?? [],
+                onFilePicked: (file) async {
+                  setState(() {
+                    currentState = currentState.copyWith(
+                      pickedFile: file,
+                      url: null,
+                    );
+                  });
+                },
+                onUrlChanged: (value) {
+                  setState(() {
+                    currentState = currentState.copyWith(url: value);
+                  });
+                },
+                onSubmit: () async {
+                  final pickedFile = currentState.pickedFile;
+                  final url = currentState.url;
+                  if (pickedFile == null && url == null) {
+                    setState(() {
+                      currentState = currentState.copyWith(
+                        errorText: 'Please either choose a video or enter '
+                            'a video URL!',
+                      );
+                    });
+                    return;
+                  } else if (pickedFile != null && url != null) {
+                    setState(() {
+                      currentState = currentState.copyWith(
+                        errorText: 'Please input either a video or a '
+                            'video URL, not both!',
+                      );
+                    });
+                    return;
+                  } else if (pickedFile != null) {
+                    await insertVideoFromFile(pickedFile);
+                  } else if (url != null) {
+                    await insertVideoFromUrl(url);
+                  }
+                  Navigator.of(context).pop();
+                },
+                onCancel: () {
+                  Navigator.of(context).pop();
+                },
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class DefaultImageInsertDialogFactory implements InsertDialogFactory {
+  @override
+  Widget create({
+    required BuildContext context,
+    required PickerDialogState currentState,
+    required bool allowMediaPicking,
+    required List<String> allowedExtensions,
+    required ValueSetter<PlatformFile> onFilePicked,
+    required ValueSetter<String> onUrlChanged,
+    required VoidCallback onSubmit,
+    required VoidCallback onCancel,
+  }) {
+    final fileName = currentState.pickedFile?.name;
+    final errorText = currentState.errorText;
+    return AlertDialog(
+      title: Text('Insert Image'),
+      scrollable: true,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (allowMediaPicking) ...[
+            Text(
+              'Select from files',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+            TextFormField(
+              controller: TextEditingController(text: fileName ?? ''),
+              readOnly: true,
+              decoration: InputDecoration(
+                prefixIcon: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).dialogBackgroundColor,
+                    padding: EdgeInsets.only(left: 5, right: 5),
+                    elevation: 0.0,
+                  ),
+                  onPressed: () async {
+                    final result = await FilePicker.platform.pickFiles(
+                      type: FileType.image,
+                      withData: true,
+                      allowedExtensions: allowedExtensions,
+                    );
+                    if (result?.files.isNotEmpty ?? false) {
+                      onFilePicked(result!.files.single);
+                    }
+                  },
+                  child: Text(
+                    'Choose image',
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodySmall?.color,
+                    ),
+                  ),
+                ),
+                suffixIcon: (fileName != null && fileName.isNotEmpty)
+                    ? IconButton(
+                        icon: Icon(Icons.close),
+                        onPressed: () => onUrlChanged(''),
+                      )
+                    : Container(height: 0, width: 0),
+                errorText: errorText,
+                errorMaxLines: 2,
+                border: InputBorder.none,
+              ),
+            ),
+            SizedBox(height: 20),
+            Text(
+              'URL',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+          ],
+          TextField(
+            controller: TextEditingController(text: currentState.url),
+            textInputAction: TextInputAction.done,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(),
+              hintText: 'URL',
+              errorText: errorText,
+              errorMaxLines: 2,
+            ),
+            onChanged: onUrlChanged,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: onCancel,
+          child: Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: onSubmit,
+          child: Text('OK'),
+        ),
+      ],
+    );
+  }
+}
+
+class DefaultVideoInsertDialogFactory implements InsertDialogFactory {
+  @override
+  Widget create({
+    required BuildContext context,
+    required PickerDialogState currentState,
+    required bool allowMediaPicking,
+    required List<String> allowedExtensions,
+    required ValueSetter<PlatformFile> onFilePicked,
+    required ValueSetter<String> onUrlChanged,
+    required VoidCallback onSubmit,
+    required VoidCallback onCancel,
+  }) {
+    final fileName = currentState.pickedFile?.name;
+    final errorText = currentState.errorText;
+    return AlertDialog(
+      title: Text('Insert Video'),
+      scrollable: true,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (allowMediaPicking) ...[
+            Text(
+              'Select from files',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+            TextFormField(
+              controller: TextEditingController(text: fileName ?? ''),
+              readOnly: true,
+              decoration: InputDecoration(
+                prefixIcon: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).dialogBackgroundColor,
+                    padding: EdgeInsets.only(left: 5, right: 5),
+                    elevation: 0.0,
+                  ),
+                  onPressed: () async {
+                    final result = await FilePicker.platform.pickFiles(
+                      type: FileType.video,
+                      withData: true,
+                      allowedExtensions: allowedExtensions,
+                    );
+                    if (result?.files.isNotEmpty ?? false) {
+                      onFilePicked(result!.files.single);
+                    }
+                  },
+                  child: Text(
+                    'Choose video',
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodySmall?.color,
+                    ),
+                  ),
+                ),
+                suffixIcon: (fileName != null && fileName.isNotEmpty)
+                    ? IconButton(
+                        icon: Icon(Icons.close),
+                        onPressed: () => onUrlChanged(''),
+                      )
+                    : Container(height: 0, width: 0),
+                errorText: errorText,
+                errorMaxLines: 2,
+                border: InputBorder.none,
+              ),
+            ),
+            SizedBox(height: 20),
+            Text(
+              'URL',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+          ],
+          TextField(
+            controller: TextEditingController(text: currentState.url),
+            textInputAction: TextInputAction.done,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(),
+              hintText: 'URL',
+              errorText: errorText,
+              errorMaxLines: 2,
+            ),
+            onChanged: onUrlChanged,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: onCancel,
+          child: Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: onSubmit,
+          child: Text('OK'),
+        ),
+      ],
+    );
   }
 }

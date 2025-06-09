@@ -1,7 +1,7 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:html_editor_enhanced/html_editor.dart';
-import 'package:file_picker/file_picker.dart';
 
 void main() => runApp(HtmlEditorExampleApp());
 
@@ -76,6 +76,27 @@ class _HtmlEditorExampleState extends State<HtmlEditorExample> {
                 htmlToolbarOptions: HtmlToolbarOptions(
                   toolbarPosition: ToolbarPosition.aboveEditor, //by default
                   toolbarType: ToolbarType.nativeScrollable, //by default
+                  defaultToolbarButtons: [
+                    StyleButtons(),
+                    FontSettingButtons(fontSizeUnit: false),
+                    FontButtons(clearAll: false),
+                    ColorButtons(),
+                    ListButtons(listStyles: false),
+                    ParagraphButtons(
+                      textDirection: false,
+                      lineHeight: false,
+                      caseConverter: false,
+                    ),
+                    InsertButtons(
+                      video: true,
+                      audio: false,
+                      table: false,
+                      hr: false,
+                      otherFile: false,
+                    ),
+                  ],
+                  imageInsertDialogFactory: SampleImageInsertDialogFactory(),
+                  videoInsertDialogFactory: SampleVideoInsertDialogFactory(),
                   onButtonPressed:
                       (ButtonType type, bool? status, Function? updateStatus) {
                     print(
@@ -450,6 +471,144 @@ class _HtmlEditorExampleState extends State<HtmlEditorExample> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class SampleImageInsertDialogFactory implements InsertDialogFactory {
+  @override
+  Widget create({
+    required BuildContext context,
+    required PickerDialogState currentState,
+    required bool allowMediaPicking,
+    required List<String> allowedExtensions,
+    required ValueSetter<PlatformFile> onFilePicked,
+    required ValueSetter<String> onUrlChanged,
+    required VoidCallback onSubmit,
+    required VoidCallback onCancel,
+  }) {
+    final fileName = currentState.pickedFile?.name;
+    final errorText = currentState.errorText;
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return AlertDialog(
+          title: Text('🌟 Custom Image Insert'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ElevatedButton.icon(
+                icon: Icon(Icons.image),
+                label: Text('Pick Image File'),
+                onPressed: () async {
+                  final result = await FilePicker.platform.pickFiles(
+                    type: FileType.image,
+                    withData: true,
+                    allowedExtensions: allowedExtensions,
+                  );
+                  if (result?.files.isNotEmpty ?? false) {
+                    onFilePicked(result!.files.single);
+                  }
+                },
+              ),
+              if (fileName != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text('Selected: $fileName'),
+                ),
+              Padding(
+                padding: const EdgeInsets.only(top: 16.0),
+                child: Text('Or enter image URL:'),
+              ),
+              TextField(
+                controller: TextEditingController(text: currentState.url),
+                decoration: InputDecoration(
+                  hintText: 'Image URL',
+                  errorText: errorText,
+                ),
+                onChanged: onUrlChanged,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: onCancel,
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              onPressed: onSubmit,
+              child: Text('Insert Image'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class SampleVideoInsertDialogFactory implements InsertDialogFactory {
+  @override
+  Widget create({
+    required BuildContext context,
+    required PickerDialogState currentState,
+    required bool allowMediaPicking,
+    required List<String> allowedExtensions,
+    required ValueSetter<PlatformFile> onFilePicked,
+    required ValueSetter<String> onUrlChanged,
+    required VoidCallback onSubmit,
+    required VoidCallback onCancel,
+  }) {
+    final fileName = currentState.pickedFile?.name;
+    final errorText = currentState.errorText;
+    return AlertDialog(
+      title: Text('🌟 Custom Video Insert'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ElevatedButton.icon(
+            icon: Icon(Icons.video_library),
+            label: Text('Pick Video File'),
+            onPressed: () async {
+              final result = await FilePicker.platform.pickFiles(
+                type: FileType.video,
+                withData: true,
+                allowedExtensions: allowedExtensions,
+              );
+              if (result?.files.isNotEmpty ?? false) {
+                onFilePicked(result!.files.single);
+              }
+            },
+          ),
+          if (fileName != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Text('Selected: $fileName'),
+            ),
+          Padding(
+            padding: const EdgeInsets.only(top: 16.0),
+            child: Text('Or enter video URL:'),
+          ),
+          TextField(
+            controller: TextEditingController(text: currentState.url),
+            decoration: InputDecoration(
+              hintText: 'Video URL',
+              errorText: errorText,
+            ),
+            onChanged: onUrlChanged,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: onCancel,
+          child: Text('Cancel'),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+          onPressed: onSubmit,
+          child: Text('Insert Video'),
+        ),
+      ],
     );
   }
 }

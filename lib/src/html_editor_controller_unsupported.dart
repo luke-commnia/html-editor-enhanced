@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:html_editor_enhanced/html_editor.dart';
 import 'package:meta/meta.dart';
 
@@ -10,7 +11,7 @@ class HtmlEditorController {
   });
 
   late final Future<void> Function() insertVideo;
-  late final  Future<void>Function() insertPicture;
+  late final Future<void> Function() insertPicture;
 
   /// Toolbar widget state to call various methods. For internal use only.
   @internal
@@ -174,4 +175,12 @@ class HtmlEditorController {
   /// Internal function to insert table on Web
   @internal
   void insertTable(String dimensions) {}
+
+  Future<void> insertImageFromUrl(String url) async {
+    await toolbar?.insertImageFromUrl(url);
+  }
+
+  Future<void> insertImageFromFile(PlatformFile file) async {
+    await toolbar?.insertImageFromFile(file);
+  }
 }

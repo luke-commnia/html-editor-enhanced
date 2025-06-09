@@ -191,6 +191,8 @@ class HtmlToolbarOptions {
     this.gridViewVerticalSpacing = 5,
     this.allowImagePicking = true,
     this.allowVideoPicking = true,
+    this.imageInsertDialogFactory,
+    this.videoInsertDialogFactory,
   });
 
   /// Allows you to set the allowed extensions when a user inserts an audio file
@@ -413,6 +415,9 @@ class HtmlToolbarOptions {
   /// Allow the user to choose a video from their device when video selection
   /// is enabled. Inserting videos via URL will still be possible if this is false.
   final bool allowVideoPicking;
+
+  final InsertDialogFactory? imageInsertDialogFactory;
+  final InsertDialogFactory? videoInsertDialogFactory;
 }
 
 /// Other options such as the height of the widget and the decoration surrounding it
@@ -436,4 +441,41 @@ class OtherOptions {
   ///
   /// The default value is 400.
   final double height;
+}
+
+abstract class InsertDialogFactory {
+  Widget create({
+    required BuildContext context,
+    required PickerDialogState currentState,
+    required bool allowMediaPicking,
+    required List<String> allowedExtensions,
+    required ValueSetter<PlatformFile> onFilePicked,
+    required ValueSetter<String> onUrlChanged,
+    required VoidCallback onSubmit,
+    required VoidCallback onCancel,
+  });
+}
+
+class PickerDialogState {
+  const PickerDialogState({
+    this.pickedFile,
+    this.url,
+    this.errorText,
+  });
+
+  final PlatformFile? pickedFile;
+  final String? url;
+  final String? errorText;
+
+  PickerDialogState copyWith({
+    PlatformFile? pickedFile,
+    String? url,
+    String? errorText,
+  }) {
+    return PickerDialogState(
+      pickedFile: pickedFile ?? this.pickedFile,
+      url: url ?? this.url,
+      errorText: errorText,
+    );
+  }
 }
