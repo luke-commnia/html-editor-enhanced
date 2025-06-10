@@ -2752,7 +2752,7 @@ class ToolbarWidgetState extends State<ToolbarWidget> {
     final factory = widget.htmlToolbarOptions.imageInsertDialogFactory ??
         DefaultImageInsertDialogFactory();
     final allowImagePicking = widget.htmlToolbarOptions.allowImagePicking;
-    var currentState = PickerDialogState();
+    var currentState = const PickerDialogState();
     await showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -2767,15 +2767,12 @@ class ToolbarWidgetState extends State<ToolbarWidget> {
                     widget.htmlToolbarOptions.imageExtensions ?? [],
                 onFilePicked: (file) async {
                   setState(() {
-                    currentState = currentState.copyWith(
-                      pickedFile: file,
-                      url: null,
-                    );
+                    currentState = PickerDialogState.fromFile(file);
                   });
                 },
-                onUrlChanged: (value) {
+                onUrlChanged: (url) {
                   setState(() {
-                    currentState = currentState.copyWith(url: value);
+                    currentState = PickerDialogState.fromUrl(url);
                   });
                 },
                 onSubmit: () async {
@@ -2826,7 +2823,7 @@ class ToolbarWidgetState extends State<ToolbarWidget> {
     final factory = widget.htmlToolbarOptions.videoInsertDialogFactory ??
         DefaultVideoInsertDialogFactory();
     final allowVideoPicking = widget.htmlToolbarOptions.allowVideoPicking;
-    var currentState = PickerDialogState();
+    var currentState = const PickerDialogState();
     await showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -2841,15 +2838,12 @@ class ToolbarWidgetState extends State<ToolbarWidget> {
                     widget.htmlToolbarOptions.videoExtensions ?? [],
                 onFilePicked: (file) async {
                   setState(() {
-                    currentState = currentState.copyWith(
-                      pickedFile: file,
-                      url: null,
-                    );
+                    currentState = PickerDialogState.fromFile(file);
                   });
                 },
-                onUrlChanged: (value) {
+                onUrlChanged: (url) {
                   setState(() {
-                    currentState = currentState.copyWith(url: value);
+                    currentState = PickerDialogState.fromUrl(url);
                   });
                 },
                 onSubmit: () async {

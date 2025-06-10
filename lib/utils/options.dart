@@ -463,6 +463,16 @@ class PickerDialogState {
     this.errorText,
   });
 
+  const PickerDialogState.fromFile(PlatformFile file)
+      : pickedFile = file,
+        url = null,
+        errorText = null;
+
+  const PickerDialogState.fromUrl(String url)
+      : pickedFile = null,
+        url = url,
+        errorText = null;
+
   final PlatformFile? pickedFile;
   final String? url;
   final String? errorText;
