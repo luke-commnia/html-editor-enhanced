@@ -1859,24 +1859,27 @@ class ToolbarWidgetState extends State<ToolbarWidget> {
                                             },
                                           ),
                                         ),
-                                        ElevatedButton(
-                                          style: ElevatedButton.styleFrom(
-                                              backgroundColor: Theme.of(context)
-                                                  .dialogBackgroundColor,
-                                              padding: EdgeInsets.only(
-                                                  left: 5, right: 5),
-                                              elevation: 0.0),
-                                          onPressed: () {
-                                            setState(() {
-                                              openNewTab = !openNewTab;
-                                            });
-                                          },
-                                          child: Text('Open in new window',
-                                              style: TextStyle(
-                                                  color: Theme.of(context)
-                                                      .textTheme
-                                                      .bodySmall
-                                                      ?.color)),
+                                        Flexible(
+                                          child: ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                                backgroundColor:
+                                                    Theme.of(context)
+                                                        .dialogBackgroundColor,
+                                                padding: EdgeInsets.only(
+                                                    left: 5, right: 5),
+                                                elevation: 0.0),
+                                            onPressed: () {
+                                              setState(() {
+                                                openNewTab = !openNewTab;
+                                              });
+                                            },
+                                            child: Text('Open in new window',
+                                                style: TextStyle(
+                                                    color: Theme.of(context)
+                                                        .textTheme
+                                                        .bodySmall
+                                                        ?.color)),
+                                          ),
                                         ),
                                       ],
                                     ),
