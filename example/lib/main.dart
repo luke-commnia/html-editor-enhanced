@@ -93,10 +93,11 @@ class _HtmlEditorExampleState extends State<HtmlEditorExample> {
                       table: false,
                       hr: false,
                       otherFile: false,
+                      link: true,
                     ),
                   ],
-                  imageInsertDialogFactory: SampleImageInsertDialogFactory(),
-                  videoInsertDialogFactory: SampleVideoInsertDialogFactory(),
+                  insertDialogAbstractFactory:
+                      SampleInsertDialogAbstractFactory(),
                   onButtonPressed:
                       (ButtonType type, bool? status, Function? updateStatus) {
                     print(
@@ -475,11 +476,11 @@ class _HtmlEditorExampleState extends State<HtmlEditorExample> {
   }
 }
 
-class SampleImageInsertDialogFactory implements InsertDialogFactory {
+class SampleInsertDialogAbstractFactory extends InsertDialogAbstractFactory {
   @override
-  Widget create({
+  Widget createImageDialog({
     required BuildContext context,
-    required PickerDialogState currentState,
+    required InsertDialogState currentState,
     required bool allowMediaPicking,
     required List<String> allowedExtensions,
     required ValueSetter<PlatformFile> onFilePicked,
@@ -492,38 +493,64 @@ class SampleImageInsertDialogFactory implements InsertDialogFactory {
     return StatefulBuilder(
       builder: (context, setState) {
         return AlertDialog(
-          title: Text('🌟 Custom Image Insert'),
+          title: Text('🌟 Custom Abstract Factory Image Insert'),
+          scrollable: true,
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ElevatedButton.icon(
-                icon: Icon(Icons.image),
-                label: Text('Pick Image File'),
-                onPressed: () async {
-                  final result = await FilePicker.platform.pickFiles(
-                    type: FileType.image,
-                    withData: true,
-                    allowedExtensions: allowedExtensions,
-                  );
-                  if (result?.files.isNotEmpty ?? false) {
-                    onFilePicked(result!.files.single);
-                  }
-                },
-              ),
-              if (fileName != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Text('Selected: $fileName'),
+              if (allowMediaPicking) ...[
+                ElevatedButton.icon(
+                  icon: Icon(Icons.image),
+                  label: Text('Pick Image File'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () async {
+                    final result = await FilePicker.platform.pickFiles(
+                      type: FileType.image,
+                      withData: true,
+                      allowedExtensions: allowedExtensions,
+                    );
+                    if (result?.files.isNotEmpty ?? false) {
+                      onFilePicked(result!.files.single);
+                    }
+                  },
                 ),
-              Padding(
-                padding: const EdgeInsets.only(top: 16.0),
-                child: Text('Or enter image URL:'),
-              ),
+                if (fileName != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Container(
+                      padding: EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.green.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.check_circle,
+                              color: Colors.green, size: 16),
+                          SizedBox(width: 8),
+                          Expanded(child: Text('Selected: $fileName')),
+                        ],
+                      ),
+                    ),
+                  ),
+                SizedBox(height: 16),
+                Divider(),
+                SizedBox(height: 8),
+              ],
+              Text('Or enter image URL:',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              SizedBox(height: 8),
               TextField(
                 controller: TextEditingController(text: currentState.url),
                 decoration: InputDecoration(
                   hintText: 'Image URL',
+                  prefixIcon: Icon(Icons.link),
                   errorText: errorText,
+                  border: OutlineInputBorder(),
                 ),
                 onChanged: onUrlChanged,
               ),
@@ -544,13 +571,11 @@ class SampleImageInsertDialogFactory implements InsertDialogFactory {
       },
     );
   }
-}
 
-class SampleVideoInsertDialogFactory implements InsertDialogFactory {
   @override
-  Widget create({
+  Widget createVideoDialog({
     required BuildContext context,
-    required PickerDialogState currentState,
+    required InsertDialogState currentState,
     required bool allowMediaPicking,
     required List<String> allowedExtensions,
     required ValueSetter<PlatformFile> onFilePicked,
@@ -560,55 +585,196 @@ class SampleVideoInsertDialogFactory implements InsertDialogFactory {
   }) {
     final fileName = currentState.pickedFile?.name;
     final errorText = currentState.errorText;
-    return AlertDialog(
-      title: Text('🌟 Custom Video Insert'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ElevatedButton.icon(
-            icon: Icon(Icons.video_library),
-            label: Text('Pick Video File'),
-            onPressed: () async {
-              final result = await FilePicker.platform.pickFiles(
-                type: FileType.video,
-                withData: true,
-                allowedExtensions: allowedExtensions,
-              );
-              if (result?.files.isNotEmpty ?? false) {
-                onFilePicked(result!.files.single);
-              }
-            },
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return AlertDialog(
+          title: Text('🎬 Custom Abstract Factory Video Insert'),
+          scrollable: true,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (allowMediaPicking) ...[
+                ElevatedButton.icon(
+                  icon: Icon(Icons.video_library),
+                  label: Text('Pick Video File'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.purple,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () async {
+                    final result = await FilePicker.platform.pickFiles(
+                      type: FileType.video,
+                      withData: true,
+                      allowedExtensions: allowedExtensions,
+                    );
+                    if (result?.files.isNotEmpty ?? false) {
+                      onFilePicked(result!.files.single);
+                    }
+                  },
+                ),
+                if (fileName != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Container(
+                      padding: EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.shade50,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.purple.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.check_circle,
+                              color: Colors.purple, size: 16),
+                          SizedBox(width: 8),
+                          Expanded(child: Text('Selected: $fileName')),
+                        ],
+                      ),
+                    ),
+                  ),
+                SizedBox(height: 16),
+                Divider(),
+                SizedBox(height: 8),
+              ],
+              Text('Or enter video URL:',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              SizedBox(height: 8),
+              TextField(
+                controller: TextEditingController(text: currentState.url),
+                decoration: InputDecoration(
+                  hintText: 'Video URL',
+                  prefixIcon: Icon(Icons.link),
+                  errorText: errorText,
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: onUrlChanged,
+              ),
+            ],
           ),
-          if (fileName != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: Text('Selected: $fileName'),
+          actions: [
+            TextButton(
+              onPressed: onCancel,
+              child: Text('Cancel'),
             ),
-          Padding(
-            padding: const EdgeInsets.only(top: 16.0),
-            child: Text('Or enter video URL:'),
-          ),
-          TextField(
-            controller: TextEditingController(text: currentState.url),
-            decoration: InputDecoration(
-              hintText: 'Video URL',
-              errorText: errorText,
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+              onPressed: onSubmit,
+              child: Text('Insert Video'),
             ),
-            onChanged: onUrlChanged,
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget createLinkDialog({
+    required BuildContext context,
+    required InsertDialogState currentState,
+    required ValueSetter<String> onTextChanged,
+    required ValueSetter<String> onUrlChanged,
+    required ValueSetter<bool> onOpenNewTabChanged,
+    required VoidCallback onSubmit,
+    required VoidCallback onCancel,
+  }) {
+    final textController = TextEditingController(text: currentState.text ?? '');
+    final urlController = TextEditingController(text: currentState.url ?? '');
+    final formKey = GlobalKey<FormState>();
+
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return AlertDialog(
+          title: Text('🔗 Custom Abstract Factory Link Insert'),
+          scrollable: true,
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Text to display',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                SizedBox(height: 10),
+                TextField(
+                  controller: textController,
+                  textInputAction: TextInputAction.next,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Text',
+                    prefixIcon: Icon(Icons.text_fields),
+                  ),
+                  onChanged: onTextChanged,
+                ),
+                SizedBox(height: 20),
+                Text('URL', style: TextStyle(fontWeight: FontWeight.bold)),
+                SizedBox(height: 10),
+                TextFormField(
+                  controller: urlController,
+                  textInputAction: TextInputAction.done,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'URL',
+                    prefixIcon: Icon(Icons.link),
+                    errorText: currentState.errorText,
+                  ),
+                  validator: (String? value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a URL!';
+                    }
+                    return null;
+                  },
+                  onChanged: onUrlChanged,
+                ),
+                SizedBox(height: 20),
+                Row(
+                  children: <Widget>[
+                    SizedBox(
+                      height: 48.0,
+                      width: 24.0,
+                      child: Checkbox(
+                        value: currentState.openNewTab,
+                        activeColor: Colors.blue,
+                        onChanged: (bool? value) {
+                          onOpenNewTabChanged(value ?? false);
+                        },
+                      ),
+                    ),
+                    Flexible(
+                      child: ElevatedButton.icon(
+                        icon: Icon(Icons.open_in_new),
+                        label: Text('Open in new window'),
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                Theme.of(context).dialogBackgroundColor,
+                            padding: EdgeInsets.only(left: 5, right: 5),
+                            elevation: 0.0),
+                        onPressed: () {
+                          onOpenNewTabChanged(!currentState.openNewTab);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: onCancel,
-          child: Text('Cancel'),
-        ),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-          onPressed: onSubmit,
-          child: Text('Insert Video'),
-        ),
-      ],
+          actions: [
+            TextButton(
+              onPressed: onCancel,
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  onSubmit();
+                }
+              },
+              child: Text('Insert Link'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

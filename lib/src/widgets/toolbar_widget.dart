@@ -1123,7 +1123,8 @@ class ToolbarWidgetState extends State<ToolbarWidget> {
                               newColor = color;
                             },
                             title: Text('Choose a Color',
-                                style: Theme.of(context).textTheme.headlineSmall),
+                                style:
+                                    Theme.of(context).textTheme.headlineSmall),
                             width: 40,
                             height: 40,
                             spacing: 0,
@@ -1783,145 +1784,7 @@ class ToolbarWidgetState extends State<ToolbarWidget> {
           textStyle: widget.htmlToolbarOptions.textStyle,
           onPressed: (int index) async {
             if (t.getIcons()[index].icon == Icons.link) {
-              var proceed = await widget.htmlToolbarOptions.onButtonPressed
-                      ?.call(ButtonType.link, null, null) ??
-                  true;
-              if (proceed) {
-                final text = TextEditingController();
-                final url = TextEditingController();
-                final textFocus = FocusNode();
-                final urlFocus = FocusNode();
-                final formKey = GlobalKey<FormState>();
-                var openNewTab = false;
-                await showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return PointerInterceptor(
-                        child: StatefulBuilder(builder:
-                            (BuildContext context, StateSetter setState) {
-                          return AlertDialog(
-                            title: Text('Insert Link'),
-                            scrollable: true,
-                            content: Form(
-                              key: formKey,
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Text to display',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold)),
-                                    SizedBox(height: 10),
-                                    TextField(
-                                      controller: text,
-                                      focusNode: textFocus,
-                                      textInputAction: TextInputAction.next,
-                                      decoration: InputDecoration(
-                                        border: OutlineInputBorder(),
-                                        hintText: 'Text',
-                                      ),
-                                      onSubmitted: (_) {
-                                        urlFocus.requestFocus();
-                                      },
-                                    ),
-                                    SizedBox(height: 20),
-                                    Text('URL',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold)),
-                                    SizedBox(height: 10),
-                                    TextFormField(
-                                      controller: url,
-                                      focusNode: urlFocus,
-                                      textInputAction: TextInputAction.done,
-                                      decoration: InputDecoration(
-                                        border: OutlineInputBorder(),
-                                        hintText: 'URL',
-                                      ),
-                                      validator: (String? value) {
-                                        if (value == null || value.isEmpty) {
-                                          return 'Please enter a URL!';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                    Row(
-                                      children: <Widget>[
-                                        SizedBox(
-                                          height: 48.0,
-                                          width: 24.0,
-                                          child: Checkbox(
-                                            value: openNewTab,
-                                            activeColor: Color(0xFF827250),
-                                            onChanged: (bool? value) {
-                                              setState(() {
-                                                openNewTab = value!;
-                                              });
-                                            },
-                                          ),
-                                        ),
-                                        ElevatedButton(
-                                          style: ElevatedButton.styleFrom(
-                                              backgroundColor: Theme.of(context)
-                                                  .dialogBackgroundColor,
-                                              padding: EdgeInsets.only(
-                                                  left: 5, right: 5),
-                                              elevation: 0.0),
-                                          onPressed: () {
-                                            setState(() {
-                                              openNewTab = !openNewTab;
-                                            });
-                                          },
-                                          child: Text('Open in new window',
-                                              style: TextStyle(
-                                                  color: Theme.of(context)
-                                                      .textTheme
-                                                      .bodySmall
-                                                      ?.color)),
-                                        ),
-                                      ],
-                                    ),
-                                  ]),
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                },
-                                child: Text('Cancel'),
-                              ),
-                              TextButton(
-                                onPressed: () async {
-                                  if (formKey.currentState!.validate()) {
-                                    var proceed = await widget
-                                            .htmlToolbarOptions
-                                            .linkInsertInterceptor
-                                            ?.call(
-                                                text.text.isEmpty
-                                                    ? url.text
-                                                    : text.text,
-                                                url.text,
-                                                openNewTab) ??
-                                        true;
-                                    if (proceed) {
-                                      widget.controller.insertLink(
-                                        text.text.isEmpty
-                                            ? url.text
-                                            : text.text,
-                                        url.text,
-                                        openNewTab,
-                                      );
-                                    }
-                                    Navigator.of(context).pop();
-                                  }
-                                },
-                                child: Text('OK'),
-                              )
-                            ],
-                          );
-                        }),
-                      );
-                    });
-              }
+              await _insertLink();
             }
             if (t.getIcons()[index].icon == Icons.image_outlined) {
               await _insertPicture();
@@ -2056,7 +1919,8 @@ class ToolbarWidgetState extends State<ToolbarWidget> {
                                     }
                                     Navigator.of(context).pop();
                                   } else {
-                                    final String html = "<audio controls src='${url.text}'></audio>";
+                                    final String html =
+                                        "<audio controls src='${url.text}'></audio>";
                                     var proceed = await widget
                                             .htmlToolbarOptions
                                             .mediaLinkInsertInterceptor
@@ -2749,30 +2613,30 @@ class ToolbarWidgetState extends State<ToolbarWidget> {
       return;
     }
 
-    final factory = widget.htmlToolbarOptions.imageInsertDialogFactory ??
-        DefaultImageInsertDialogFactory();
-    final allowImagePicking = widget.htmlToolbarOptions.allowImagePicking;
-    var currentState = const PickerDialogState();
+    final abstractFactory =
+        widget.htmlToolbarOptions.insertDialogAbstractFactory;
+    var currentState = InsertDialogState();
+
     await showDialog(
       context: context,
       builder: (BuildContext context) {
         return PointerInterceptor(
           child: StatefulBuilder(
             builder: (context, setState) {
-              return factory.create(
+              return abstractFactory.createImageDialog(
                 context: context,
                 currentState: currentState,
-                allowMediaPicking: allowImagePicking,
+                allowMediaPicking: widget.htmlToolbarOptions.allowImagePicking,
                 allowedExtensions:
                     widget.htmlToolbarOptions.imageExtensions ?? [],
-                onFilePicked: (file) async {
+                onFilePicked: (file) {
                   setState(() {
-                    currentState = PickerDialogState.fromFile(file);
+                    currentState = InsertDialogState.fromFile(file);
                   });
                 },
                 onUrlChanged: (url) {
                   setState(() {
-                    currentState = PickerDialogState.fromUrl(url);
+                    currentState = currentState.copyWith(url: url);
                   });
                 },
                 onSubmit: () async {
@@ -2781,16 +2645,16 @@ class ToolbarWidgetState extends State<ToolbarWidget> {
                   if (pickedFile == null && url == null) {
                     setState(() {
                       currentState = currentState.copyWith(
-                        errorText: 'Please either choose an image or enter '
-                            'an image URL!',
+                        errorText:
+                            'Please either choose an image or enter an image URL!',
                       );
                     });
                     return;
                   } else if (pickedFile != null && url != null) {
                     setState(() {
                       currentState = currentState.copyWith(
-                        errorText: 'Please input either an image or an '
-                            'image URL, not both!',
+                        errorText:
+                            'Please input either an image or an image URL, not both!',
                       );
                     });
                     return;
@@ -2820,30 +2684,30 @@ class ToolbarWidgetState extends State<ToolbarWidget> {
       return;
     }
 
-    final factory = widget.htmlToolbarOptions.videoInsertDialogFactory ??
-        DefaultVideoInsertDialogFactory();
-    final allowVideoPicking = widget.htmlToolbarOptions.allowVideoPicking;
-    var currentState = const PickerDialogState();
+    final abstractFactory =
+        widget.htmlToolbarOptions.insertDialogAbstractFactory;
+    var currentState = InsertDialogState();
+
     await showDialog(
       context: context,
       builder: (BuildContext context) {
         return PointerInterceptor(
           child: StatefulBuilder(
             builder: (context, setState) {
-              return factory.create(
+              return abstractFactory.createVideoDialog(
                 context: context,
                 currentState: currentState,
-                allowMediaPicking: allowVideoPicking,
+                allowMediaPicking: widget.htmlToolbarOptions.allowVideoPicking,
                 allowedExtensions:
                     widget.htmlToolbarOptions.videoExtensions ?? [],
-                onFilePicked: (file) async {
+                onFilePicked: (file) {
                   setState(() {
-                    currentState = PickerDialogState.fromFile(file);
+                    currentState = InsertDialogState.fromFile(file);
                   });
                 },
                 onUrlChanged: (url) {
                   setState(() {
-                    currentState = PickerDialogState.fromUrl(url);
+                    currentState = currentState.copyWith(url: url);
                   });
                 },
                 onSubmit: () async {
@@ -2852,16 +2716,16 @@ class ToolbarWidgetState extends State<ToolbarWidget> {
                   if (pickedFile == null && url == null) {
                     setState(() {
                       currentState = currentState.copyWith(
-                        errorText: 'Please either choose a video or enter '
-                            'a video URL!',
+                        errorText:
+                            'Please either choose a video or enter a video URL!',
                       );
                     });
                     return;
                   } else if (pickedFile != null && url != null) {
                     setState(() {
                       currentState = currentState.copyWith(
-                        errorText: 'Please input either a video or a '
-                            'video URL, not both!',
+                        errorText:
+                            'Please input either a video or a video URL, not both!',
                       );
                     });
                     return;
@@ -2882,202 +2746,79 @@ class ToolbarWidgetState extends State<ToolbarWidget> {
       },
     );
   }
-}
 
-class DefaultImageInsertDialogFactory implements InsertDialogFactory {
-  @override
-  Widget create({
-    required BuildContext context,
-    required PickerDialogState currentState,
-    required bool allowMediaPicking,
-    required List<String> allowedExtensions,
-    required ValueSetter<PlatformFile> onFilePicked,
-    required ValueSetter<String> onUrlChanged,
-    required VoidCallback onSubmit,
-    required VoidCallback onCancel,
-  }) {
-    final fileName = currentState.pickedFile?.name;
-    final errorText = currentState.errorText;
-    return AlertDialog(
-      title: Text('Insert Image'),
-      scrollable: true,
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (allowMediaPicking) ...[
-            Text(
-              'Select from files',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 10),
-            TextFormField(
-              controller: TextEditingController(text: fileName ?? ''),
-              readOnly: true,
-              decoration: InputDecoration(
-                prefixIcon: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).dialogBackgroundColor,
-                    padding: EdgeInsets.only(left: 5, right: 5),
-                    elevation: 0.0,
-                  ),
-                  onPressed: () async {
-                    final result = await FilePicker.platform.pickFiles(
-                      type: FileType.image,
-                      withData: true,
-                      allowedExtensions: allowedExtensions,
-                    );
-                    if (result?.files.isNotEmpty ?? false) {
-                      onFilePicked(result!.files.single);
-                    }
-                  },
-                  child: Text(
-                    'Choose image',
-                    style: TextStyle(
-                      color: Theme.of(context).textTheme.bodySmall?.color,
-                    ),
-                  ),
-                ),
-                suffixIcon: (fileName != null && fileName.isNotEmpty)
-                    ? IconButton(
-                        icon: Icon(Icons.close),
-                        onPressed: () => onUrlChanged(''),
-                      )
-                    : Container(height: 0, width: 0),
-                errorText: errorText,
-                errorMaxLines: 2,
-                border: InputBorder.none,
-              ),
-            ),
-            SizedBox(height: 20),
-            Text(
-              'URL',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 10),
-          ],
-          TextField(
-            controller: TextEditingController(text: currentState.url),
-            textInputAction: TextInputAction.done,
-            decoration: InputDecoration(
-              border: OutlineInputBorder(),
-              hintText: 'URL',
-              errorText: errorText,
-              errorMaxLines: 2,
-            ),
-            onChanged: onUrlChanged,
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: onCancel,
-          child: Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: onSubmit,
-          child: Text('OK'),
-        ),
-      ],
-    );
-  }
-}
+  Future<void> _insertLink() async {
+    final proceed = await widget.htmlToolbarOptions.onButtonPressed
+            ?.call(ButtonType.link, null, null) ??
+        true;
+    if (!proceed) {
+      return;
+    }
 
-class DefaultVideoInsertDialogFactory implements InsertDialogFactory {
-  @override
-  Widget create({
-    required BuildContext context,
-    required PickerDialogState currentState,
-    required bool allowMediaPicking,
-    required List<String> allowedExtensions,
-    required ValueSetter<PlatformFile> onFilePicked,
-    required ValueSetter<String> onUrlChanged,
-    required VoidCallback onSubmit,
-    required VoidCallback onCancel,
-  }) {
-    final fileName = currentState.pickedFile?.name;
-    final errorText = currentState.errorText;
-    return AlertDialog(
-      title: Text('Insert Video'),
-      scrollable: true,
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (allowMediaPicking) ...[
-            Text(
-              'Select from files',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 10),
-            TextFormField(
-              controller: TextEditingController(text: fileName ?? ''),
-              readOnly: true,
-              decoration: InputDecoration(
-                prefixIcon: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).dialogBackgroundColor,
-                    padding: EdgeInsets.only(left: 5, right: 5),
-                    elevation: 0.0,
-                  ),
-                  onPressed: () async {
-                    final result = await FilePicker.platform.pickFiles(
-                      type: FileType.video,
-                      withData: true,
-                      allowedExtensions: allowedExtensions,
+    final abstractFactory =
+        widget.htmlToolbarOptions.insertDialogAbstractFactory;
+    var currentState = InsertDialogState();
+
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return PointerInterceptor(
+          child: StatefulBuilder(
+            builder: (context, setState) {
+              return abstractFactory.createLinkDialog(
+                context: context,
+                currentState: currentState,
+                onTextChanged: (text) {
+                  setState(() {
+                    currentState = currentState.copyWith(text: text);
+                  });
+                },
+                onUrlChanged: (url) {
+                  setState(() {
+                    currentState = currentState.copyWith(url: url);
+                  });
+                },
+                onOpenNewTabChanged: (openNewTab) {
+                  setState(() {
+                    currentState =
+                        currentState.copyWith(openNewTab: openNewTab);
+                  });
+                },
+                onSubmit: () async {
+                  final text = currentState.text ?? '';
+                  final url = currentState.url ?? '';
+                  final openNewTab = currentState.openNewTab;
+
+                  if (url.isEmpty) {
+                    setState(() {
+                      currentState = currentState.copyWith(
+                        errorText: 'Please enter a URL!',
+                      );
+                    });
+                    return;
+                  }
+
+                  var proceed = await widget
+                          .htmlToolbarOptions.linkInsertInterceptor
+                          ?.call(text.isEmpty ? url : text, url, openNewTab) ??
+                      true;
+                  if (proceed) {
+                    widget.controller.insertLink(
+                      text.isEmpty ? url : text,
+                      url,
+                      openNewTab,
                     );
-                    if (result?.files.isNotEmpty ?? false) {
-                      onFilePicked(result!.files.single);
-                    }
-                  },
-                  child: Text(
-                    'Choose video',
-                    style: TextStyle(
-                      color: Theme.of(context).textTheme.bodySmall?.color,
-                    ),
-                  ),
-                ),
-                suffixIcon: (fileName != null && fileName.isNotEmpty)
-                    ? IconButton(
-                        icon: Icon(Icons.close),
-                        onPressed: () => onUrlChanged(''),
-                      )
-                    : Container(height: 0, width: 0),
-                errorText: errorText,
-                errorMaxLines: 2,
-                border: InputBorder.none,
-              ),
-            ),
-            SizedBox(height: 20),
-            Text(
-              'URL',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 10),
-          ],
-          TextField(
-            controller: TextEditingController(text: currentState.url),
-            textInputAction: TextInputAction.done,
-            decoration: InputDecoration(
-              border: OutlineInputBorder(),
-              hintText: 'URL',
-              errorText: errorText,
-              errorMaxLines: 2,
-            ),
-            onChanged: onUrlChanged,
+                  }
+                  Navigator.of(context).pop();
+                },
+                onCancel: () {
+                  Navigator.of(context).pop();
+                },
+              );
+            },
           ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: onCancel,
-          child: Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: onSubmit,
-          child: Text('OK'),
-        ),
-      ],
+        );
+      },
     );
   }
 }

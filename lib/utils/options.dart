@@ -191,8 +191,7 @@ class HtmlToolbarOptions {
     this.gridViewVerticalSpacing = 5,
     this.allowImagePicking = true,
     this.allowVideoPicking = true,
-    this.imageInsertDialogFactory,
-    this.videoInsertDialogFactory,
+    this.insertDialogAbstractFactory = const InsertDialogAbstractFactory(),
   });
 
   /// Allows you to set the allowed extensions when a user inserts an audio file
@@ -253,7 +252,8 @@ class HtmlToolbarOptions {
   /// (true = continue with internal handler, false = do not use internal handler)
   ///
   /// If no interceptor is set, the plugin uses the internal handler.
-  final FutureOr<bool> Function(String url, InsertFileType insertFileType, String? html)?
+  final FutureOr<bool> Function(
+          String url, InsertFileType insertFileType, String? html)?
       mediaLinkInsertInterceptor;
 
   /// Allows you to intercept any image/video/audio files being inserted into the editor.
@@ -416,8 +416,8 @@ class HtmlToolbarOptions {
   /// is enabled. Inserting videos via URL will still be possible if this is false.
   final bool allowVideoPicking;
 
-  final InsertDialogFactory? imageInsertDialogFactory;
-  final InsertDialogFactory? videoInsertDialogFactory;
+  /// Abstract factory for creating insert dialogs (image, video, link).
+  final InsertDialogAbstractFactory insertDialogAbstractFactory;
 }
 
 /// Other options such as the height of the widget and the decoration surrounding it
@@ -443,49 +443,368 @@ class OtherOptions {
   final double height;
 }
 
-abstract class InsertDialogFactory {
-  Widget create({
+enum InsertDialogType {
+  image,
+  video,
+  link,
+}
+
+class InsertDialogState {
+  const InsertDialogState({
+    this.pickedFile,
+    this.url,
+    this.text,
+    this.openNewTab = false,
+    this.errorText,
+  });
+
+  const InsertDialogState.fromFile(PlatformFile file)
+      : pickedFile = file,
+        url = null,
+        text = null,
+        openNewTab = false,
+        errorText = null;
+
+  const InsertDialogState.fromUrl(String url)
+      : pickedFile = null,
+        url = url,
+        text = null,
+        openNewTab = false,
+        errorText = null;
+
+  const InsertDialogState.fromLink({
+    String? text,
+    String? url,
+    bool openNewTab = false,
+  })  : pickedFile = null,
+        url = url,
+        text = text,
+        openNewTab = openNewTab,
+        errorText = null;
+
+  final PlatformFile? pickedFile;
+  final String? url;
+  final String? text;
+  final bool openNewTab;
+  final String? errorText;
+
+  InsertDialogState copyWith({
+    PlatformFile? pickedFile,
+    String? url,
+    String? text,
+    bool? openNewTab,
+    String? errorText,
+  }) {
+    return InsertDialogState(
+      pickedFile: pickedFile ?? this.pickedFile,
+      url: url ?? this.url,
+      text: text ?? this.text,
+      openNewTab: openNewTab ?? this.openNewTab,
+      errorText: errorText,
+    );
+  }
+}
+
+/// Abstract Factory for creating insert dialogs with default implementations
+class InsertDialogAbstractFactory {
+  const InsertDialogAbstractFactory();
+
+  /// Creates an image insert dialog with default implementation
+  Widget createImageDialog({
     required BuildContext context,
-    required PickerDialogState currentState,
+    required InsertDialogState currentState,
     required bool allowMediaPicking,
     required List<String> allowedExtensions,
     required ValueSetter<PlatformFile> onFilePicked,
     required ValueSetter<String> onUrlChanged,
     required VoidCallback onSubmit,
     required VoidCallback onCancel,
-  });
-}
-
-class PickerDialogState {
-  const PickerDialogState({
-    this.pickedFile,
-    this.url,
-    this.errorText,
-  });
-
-  const PickerDialogState.fromFile(PlatformFile file)
-      : pickedFile = file,
-        url = null,
-        errorText = null;
-
-  const PickerDialogState.fromUrl(String url)
-      : pickedFile = null,
-        url = url,
-        errorText = null;
-
-  final PlatformFile? pickedFile;
-  final String? url;
-  final String? errorText;
-
-  PickerDialogState copyWith({
-    PlatformFile? pickedFile,
-    String? url,
-    String? errorText,
   }) {
-    return PickerDialogState(
-      pickedFile: pickedFile ?? this.pickedFile,
-      url: url ?? this.url,
-      errorText: errorText,
+    final fileName = currentState.pickedFile?.name;
+    final errorText = currentState.errorText;
+    return AlertDialog(
+      title: Text('Insert Image'),
+      scrollable: true,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (allowMediaPicking) ...[
+            Text(
+              'Select from files',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+            TextFormField(
+              controller: TextEditingController(text: fileName ?? ''),
+              readOnly: true,
+              decoration: InputDecoration(
+                prefixIcon: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).dialogBackgroundColor,
+                    padding: EdgeInsets.only(left: 5, right: 5),
+                    elevation: 0.0,
+                  ),
+                  onPressed: () async {
+                    final result = await FilePicker.platform.pickFiles(
+                      type: FileType.image,
+                      withData: true,
+                      allowedExtensions: allowedExtensions,
+                    );
+                    if (result?.files.isNotEmpty ?? false) {
+                      onFilePicked(result!.files.single);
+                    }
+                  },
+                  child: Text(
+                    'Choose image',
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodySmall?.color,
+                    ),
+                  ),
+                ),
+                suffixIcon: (fileName != null && fileName.isNotEmpty)
+                    ? IconButton(
+                        icon: Icon(Icons.close),
+                        onPressed: () => onUrlChanged(''),
+                      )
+                    : Container(height: 0, width: 0),
+                errorText: errorText,
+                errorMaxLines: 2,
+                border: InputBorder.none,
+              ),
+            ),
+            SizedBox(height: 20),
+            Text(
+              'URL',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+          ],
+          TextField(
+            controller: TextEditingController(text: currentState.url),
+            textInputAction: TextInputAction.done,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(),
+              hintText: 'URL',
+              errorText: errorText,
+              errorMaxLines: 2,
+            ),
+            onChanged: onUrlChanged,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: onCancel,
+          child: Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: onSubmit,
+          child: Text('OK'),
+        ),
+      ],
+    );
+  }
+
+  /// Creates a video insert dialog with default implementation
+  Widget createVideoDialog({
+    required BuildContext context,
+    required InsertDialogState currentState,
+    required bool allowMediaPicking,
+    required List<String> allowedExtensions,
+    required ValueSetter<PlatformFile> onFilePicked,
+    required ValueSetter<String> onUrlChanged,
+    required VoidCallback onSubmit,
+    required VoidCallback onCancel,
+  }) {
+    final fileName = currentState.pickedFile?.name;
+    final errorText = currentState.errorText;
+    return AlertDialog(
+      title: Text('Insert Video'),
+      scrollable: true,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (allowMediaPicking) ...[
+            Text(
+              'Select from files',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+            TextFormField(
+              controller: TextEditingController(text: fileName ?? ''),
+              readOnly: true,
+              decoration: InputDecoration(
+                prefixIcon: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).dialogBackgroundColor,
+                    padding: EdgeInsets.only(left: 5, right: 5),
+                    elevation: 0.0,
+                  ),
+                  onPressed: () async {
+                    final result = await FilePicker.platform.pickFiles(
+                      type: FileType.video,
+                      withData: true,
+                      allowedExtensions: allowedExtensions,
+                    );
+                    if (result?.files.isNotEmpty ?? false) {
+                      onFilePicked(result!.files.single);
+                    }
+                  },
+                  child: Text(
+                    'Choose video',
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodySmall?.color,
+                    ),
+                  ),
+                ),
+                suffixIcon: (fileName != null && fileName.isNotEmpty)
+                    ? IconButton(
+                        icon: Icon(Icons.close),
+                        onPressed: () => onUrlChanged(''),
+                      )
+                    : Container(height: 0, width: 0),
+                errorText: errorText,
+                errorMaxLines: 2,
+                border: InputBorder.none,
+              ),
+            ),
+            SizedBox(height: 20),
+            Text(
+              'URL',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+          ],
+          TextField(
+            controller: TextEditingController(text: currentState.url),
+            textInputAction: TextInputAction.done,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(),
+              hintText: 'URL',
+              errorText: errorText,
+              errorMaxLines: 2,
+            ),
+            onChanged: onUrlChanged,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: onCancel,
+          child: Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: onSubmit,
+          child: Text('OK'),
+        ),
+      ],
+    );
+  }
+
+  /// Creates a link insert dialog with default implementation
+  Widget createLinkDialog({
+    required BuildContext context,
+    required InsertDialogState currentState,
+    required ValueSetter<String> onTextChanged,
+    required ValueSetter<String> onUrlChanged,
+    required ValueSetter<bool> onOpenNewTabChanged,
+    required VoidCallback onSubmit,
+    required VoidCallback onCancel,
+  }) {
+    final textController = TextEditingController(text: currentState.text ?? '');
+    final urlController = TextEditingController(text: currentState.url ?? '');
+    final formKey = GlobalKey<FormState>();
+
+    return AlertDialog(
+      title: Text('Insert Link'),
+      scrollable: true,
+      content: Form(
+        key: formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Text to display',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(height: 10),
+            TextField(
+              controller: textController,
+              textInputAction: TextInputAction.next,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'Text',
+              ),
+              onChanged: onTextChanged,
+            ),
+            SizedBox(height: 20),
+            Text('URL', style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(height: 10),
+            TextFormField(
+              controller: urlController,
+              textInputAction: TextInputAction.done,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'URL',
+                errorText: currentState.errorText,
+              ),
+              validator: (String? value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter a URL!';
+                }
+                return null;
+              },
+              onChanged: onUrlChanged,
+            ),
+            Row(
+              children: <Widget>[
+                SizedBox(
+                  height: 48.0,
+                  width: 24.0,
+                  child: Checkbox(
+                    value: currentState.openNewTab,
+                    activeColor: Color(0xFF827250),
+                    onChanged: (bool? value) {
+                      onOpenNewTabChanged(value ?? false);
+                    },
+                  ),
+                ),
+                Flexible(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            Theme.of(context).dialogBackgroundColor,
+                        padding: EdgeInsets.only(left: 5, right: 5),
+                        elevation: 0.0),
+                    onPressed: () {
+                      onOpenNewTabChanged(!currentState.openNewTab);
+                    },
+                    child: Text('Open in new window',
+                        style: TextStyle(
+                            color:
+                                Theme.of(context).textTheme.bodySmall?.color)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: onCancel,
+          child: Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () {
+            if (formKey.currentState!.validate()) {
+              onSubmit();
+            }
+          },
+          child: Text('OK'),
+        ),
+      ],
     );
   }
 }
