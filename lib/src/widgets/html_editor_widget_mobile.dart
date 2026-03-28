@@ -85,6 +85,51 @@ class _HtmlEditorWidgetMobileState extends State<HtmlEditorWidget> {
     super.dispose();
   }
 
+  bool get _isRemoteEditorUrl =>
+      filePath.startsWith('http://') || filePath.startsWith('https://');
+
+  /// Same-origin editor shell and static assets (jquery, summernote css/js).
+  bool _isLoadingEditorBundleResource(String requestUrl) {
+    if (!_isRemoteEditorUrl) {
+      return requestUrl.contains(filePath);
+    }
+    final base = Uri.tryParse(filePath);
+    final req = Uri.tryParse(requestUrl);
+    if (base == null || req == null) {
+      return false;
+    }
+    if (base.origin != req.origin) {
+      return false;
+    }
+    final editorPath = base.path;
+    final dirEnd = editorPath.lastIndexOf('/');
+    final dir = dirEnd >= 0 ? editorPath.substring(0, dirEnd + 1) : '/';
+    return req.path.startsWith(dir);
+  }
+
+  /// Main Summernote document (not iframes or other origins).
+  bool _isMainEditorDocumentUrl(String loadedUrl) {
+    if (!_isRemoteEditorUrl) {
+      return loadedUrl.contains(filePath);
+    }
+    final u = Uri.tryParse(loadedUrl);
+    final f = Uri.tryParse(filePath);
+    if (u == null || f == null) {
+      return false;
+    }
+    return u.origin == f.origin && u.path == f.path;
+  }
+
+  String _summernoteDarkStylesheetUrl() {
+    if (_isRemoteEditorUrl) {
+      return Uri.parse(filePath).resolve('summernote-lite-dark.css').toString();
+    }
+    if (widget.htmlEditorOptions.filePath != null) {
+      return 'file:///android_asset/flutter_assets/packages/html_editor_enhanced/assets/summernote-lite-dark.css';
+    }
+    return 'summernote-lite-dark.css';
+  }
+
   /// resets the height of the editor to the original height
   void resetHeight() async {
     if (mounted) {
@@ -130,7 +175,10 @@ class _HtmlEditorWidgetMobileState extends State<HtmlEditorWidget> {
                   : Container(height: 0, width: 0),
               Expanded(
                 child: InAppWebView(
-                  initialFile: filePath,
+                  initialFile: _isRemoteEditorUrl ? null : filePath,
+                  initialUrlRequest: _isRemoteEditorUrl
+                      ? URLRequest(url: WebUri(filePath))
+                      : null,
                   onWebViewCreated: (InAppWebViewController controller) {
                     widget.controller.editorController = controller;
                     controller.addJavaScriptHandler(
@@ -165,7 +213,8 @@ class _HtmlEditorWidgetMobileState extends State<HtmlEditorWidget> {
                                 .htmlEditorOptions.mobileLongPressDuration)),
                   },
                   shouldOverrideUrlLoading: (controller, action) async {
-                    if (!action.request.url.toString().contains(filePath)) {
+                    if (!_isLoadingEditorBundleResource(
+                        action.request.url.toString())) {
                       return (await widget.callbacks?.onNavigationRequestMobile
                                   ?.call(action.request.url.toString()))
                               as NavigationActionPolicy? ??
@@ -228,7 +277,7 @@ class _HtmlEditorWidgetMobileState extends State<HtmlEditorWidget> {
                       (InAppWebViewController controller, Uri? uri) async {
                     var url = uri.toString();
                     var maximumFileSize = 10485760;
-                    if (url.contains(filePath)) {
+                    if (_isMainEditorDocumentUrl(url)) {
                       var summernoteToolbar = '[\n';
                       var summernoteCallbacks = '''callbacks: {
                           onKeydown: function(e) {
@@ -453,7 +502,7 @@ class _HtmlEditorWidgetMobileState extends State<HtmlEditorWidget> {
                           widget.htmlEditorOptions.darkMode != false) {
                         //todo fix for iOS (https://github.com/pichillilorenzo/flutter_inappwebview/issues/695)
                         var darkCSS =
-                            '<link href=\"${(widget.htmlEditorOptions.filePath != null ? "file:///android_asset/flutter_assets/packages/html_editor_enhanced/assets/" : "") + "summernote-lite-dark.css"}\" rel=\"stylesheet\">';
+                            '<link href=\"${_summernoteDarkStylesheetUrl()}\" rel=\"stylesheet\">';
                         await controller.evaluateJavascript(
                             source: "\$('head').append('$darkCSS');");
                       }
